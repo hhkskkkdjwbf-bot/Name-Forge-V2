@@ -184,7 +184,7 @@ const spanishGroupBatch = generateNames({
 check(
   'Spanish group format uses Spanish collective words',
   spanishGroupBatch.length === 5 && spanishGroupBatch.every((item) =>
-    /^(Taller|Estudio|Casa|Colectivo|Agencia)\\b/u.test(item.name)
+    /^(Taller|Estudio|Casa|Colectivo|Agencia)\b/u.test(item.name)
   ),
   spanishGroupBatch.map((item) => item.name).join(' | ')
 );
@@ -195,7 +195,7 @@ const japaneseTitleBatch = generateNames({
 check(
   'Japanese title format does not append romanized English title fragments',
   japaneseTitleBatch.length === 5 && japaneseTitleBatch.every((item) =>
-    !/\\p{Script=Latin}/u.test(item.name)
+    !/\p{Script=Latin}/u.test(item.name)
   ),
   japaneseTitleBatch.map((item) => item.name).join(' | ')
 );
@@ -215,7 +215,7 @@ const arabicCompoundBatch = generateNames({
 check(
   'Compound format keeps Arabic roots in the Arabic writing system',
   arabicCompoundBatch.length === 4 && arabicCompoundBatch.every((item) =>
-    !/\\p{Script=Latin}/u.test(item.name)
+    !/\p{Script=Latin}/u.test(item.name)
   ),
   arabicCompoundBatch.map((item) => item.name).join(' | ')
 );
