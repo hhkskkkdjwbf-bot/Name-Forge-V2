@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
-    "build": "tsc && vite build && npx tsx scripts/generate-seo-pages.ts",
-    "build:gh-pages": "tsc && vite build --base=./ && npx tsx scripts/generate-seo-pages.ts",
+    "build": "python python/scripts/audit_phrase_banks.py --check && tsc && vite build && npx tsx scripts/generate-seo-pages.ts",
+    "build:gh-pages": "python python/scripts/audit_phrase_banks.py --check && tsc && vite build --base=./ && npx tsx scripts/generate-seo-pages.ts",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
     "lint": "tsc --noEmit",
     "test": "npx tsx src/tests/comprehensiveSuite.ts && npx tsx src/tests/regressionQuality.ts && node scripts/siteMetadata.test.mjs",
