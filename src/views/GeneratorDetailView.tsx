@@ -71,7 +71,15 @@ export const GeneratorDetailView: React.FC<GeneratorDetailViewProps> = ({
     bn: { back: 'সব জেনারেটরে ফিরে যান', proposals: 'টি নাম তৈরি হয়েছে', inspired: 'অনুপ্রেরণা:', copyAllTitle: 'বিবরণসহ পুরো তালিকা কপি করুন', copiedBatch: 'ব্যাচ কপি হয়েছে!', copyBatch: 'ব্যাচ কপি করুন', exportTextTitle: 'এই ব্যাচ টেক্সট হিসেবে ডাউনলোড করুন', exportCsvTitle: 'এই ব্যাচ CSV স্প্রেডশিট হিসেবে ডাউনলোড করুন', tip: 'পরামর্শ: চাপুন', tipEnd: ' — মুহূর্তেই নতুন ব্যাচ গড়তে।', leaderboard: 'স্বাধীন লিডারবোর্ড', bestNames: 'আপনার সর্বোচ্চ রেটিংপ্রাপ্ত নাম', leaderboardDesc: 'এই বিভাগে আপনার ১–৫ তারা রেটিং অনুযায়ী কঠোরভাবে সাজানো।', ratedCount: 'টি রেটিংপ্রাপ্ত প্রস্তাব', stars: 'তারা', copied: 'কপি হয়েছে', copy: 'কপি', noRatings: 'এখনও কোনো রেটিং নেই:', noRatingsDesc: 'এই জেনারেটরের ব্যক্তিগত লিডারবোর্ড গড়তে ওপরের নামগুলোকে রেটিং দিন।', advantages: 'প্রধান সুবিধা', limits: 'বিবেচ্য বিষয়', explore: 'অন্যান্য বিভাগ ঘুরে দেখুন' },
     nb: { back: 'Tilbake til alle generatorer', proposals: 'navn generert', inspired: 'Inspirert av:', copyAllTitle: 'Kopier hele listen med beskrivelser', copiedBatch: 'Serien er kopiert!', copyBatch: 'Kopier serie', exportTextTitle: 'Last ned denne serien som tekst', exportCsvTitle: 'Last ned denne serien som CSV-regneark', tip: 'Tips: Trykk', tipEnd: 'for å smi en ny serie umiddelbart.', leaderboard: 'UAVHENGIG TOPPLISTE', bestNames: 'Dine høyest rangerte navn', leaderboardDesc: 'Rangert utelukkende etter dine 1–5-stjernevurderinger i denne kategorien.', ratedCount: 'vurderte forslag', stars: 'stjerner', copied: 'Kopiert', copy: 'Kopier', noRatings: 'Ingen vurderinger ennå for', noRatingsDesc: 'Vurder navnene ovenfor for å bygge din personlige topplistefor denne generatoren.', advantages: 'Viktige fordeler', limits: 'Ting å vurdere', explore: 'Utforsk andre kategorier' },
   };
-  const text = ui[language] || ui.en;
+  const text = {
+    ...ui.en,
+    ...(ui[language] || {}),
+    noMatchingNames: language === 'fr'
+      ? 'Aucune phrase rédigée dans la langue choisie ne correspond à ce mot-clé. Essayez un autre mot ou effacez la recherche.'
+      : language === 'ar'
+        ? 'لا توجد عبارة باللغة المحددة تطابق هذه الكلمة. جرّب كلمة أخرى أو امسح البحث.'
+        : 'No phrase in the selected language matches this keyword. Try another word or clear the search.',
+  };
   const exportLabels: Record<string, string[]> = {
     en: ['Date', 'Generator', 'Style', 'Archetype', 'Tone', 'Description', 'Ideal for', 'Name', 'Pronunciation', 'Name batch'],
     fr: ['Date', 'Générateur', 'Style', 'Archétype', 'Tonalité', 'Description', 'Idéal pour', 'Nom', 'Prononciation', 'Lot de noms'],
@@ -471,6 +479,12 @@ export const GeneratorDetailView: React.FC<GeneratorDetailViewProps> = ({
               </button>
             </div>
           </div>
+
+          {!isGenerating && keyword.trim() && results.length === 0 && (
+            <div role="status" className="mb-5 rounded-2xl border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm text-amber-100/90">
+              {text.noMatchingNames}
+            </div>
+          )}
 
           {/* Results Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
