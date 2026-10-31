@@ -52,7 +52,7 @@ if (process.argv.includes('--json')) {
   process.exit(0);
 }
 
-console.log('NameForge 25-locale visible-content audit');
+console.log(`NameForge ${locales.length}-locale visible-content audit (${locales.length - 1} non-French locales checked)`);
 console.log(JSON.stringify(summary, null, 2));
 console.log(`Translated category-level description fallbacks: ${categoryFallbackDescriptions.length}`);
 console.log('\nFirst 100 findings (full list can be saved by redirecting stdout):');
