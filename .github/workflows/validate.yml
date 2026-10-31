@@ -1,0 +1,37 @@
+name: Validate NameForge
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Node dependencies
+        run: npm install
+      - name: Install Python service dependencies
+        run: pip install -r python/requirements.txt
+      - name: Audit phrase banks with Python
+        run: npm run audit:python
+      - name: Test Python quality service
+        run: PYTHONPATH=python python -m unittest discover -s python/tests -v
+      - name: Run application regression tests
+        run: npm test
+      - name: Type-check application
+        run: npm run lint
+      - name: Build GitHub Pages site
+        run: npm run build:gh-pages
