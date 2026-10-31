@@ -11,6 +11,7 @@ import csv
 import hashlib
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,8 +26,12 @@ STATUSES = {"unverified", "in_review", "needs_revision", "validated", "rejected"
 
 
 def phrase_id(category: str, locale: str, phrase: str) -> str:
-    normalized = phrase.casefold()
-    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:12]
+    normalized = unicodedata.normalize("NFKC", phrase).lower()
+    value = 2166136261
+    for character in normalized:
+        value ^= ord(character)
+        value = (value * 16777619) & 0xFFFFFFFF
+    digest = f"{value:08x}"
     return f"{category}:{locale}:{digest}"
 
 
@@ -123,7 +128,7 @@ def main() -> int:
     mode.add_argument("--check", action="store_true", help="validate registry and source alignment")
     args = parser.parse_args()
     records = extract_phrases(SOURCE.read_text(encoding="utf-8"))
-    rows = build_rows(records)
+    rows = build_rows(records) if args.write else list(read_existing().values())
     errors = validate(rows, records)
     if args.write:
         REGISTRY.parent.mkdir(parents=True, exist_ok=True)
