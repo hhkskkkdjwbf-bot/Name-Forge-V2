@@ -20,7 +20,8 @@ Ce registre suit la relecture humaine des formulations présentes dans `src/data
 | `in_review` | Relecture en cours |
 | `needs_revision` | Correction nécessaire avant nouvelle vérification |
 | `validated` | Validée après examen humain par un locuteur natif et attestation renseignée |
-| `rejected` | À retirer du corpus actif |
+| `rejected` | À retirer du corpus actif après examen |
+| `archived` | Formulation retirée du code source ; historique conservé |
 
 Ne passez une ligne à `validated` qu'après vérification effective par un locuteur natif de la langue et de la variété indiquée. Le nom/identifiant du relecteur, son niveau, la variété ou région, la date et l'attestation doivent être remplis. Ces champs constituent une trace déclarative ; ils ne remplacent pas la vérification éditoriale de l'identité et de la compétence du relecteur.
 
@@ -59,7 +60,7 @@ python scripts/linguistic-review-registry.py --check
 python scripts/linguistic-review-registry.py --write
 ```
 
-`--write` ajoute les formulations nouvelles en statut `unverified`, conserve les métadonnées des identifiants inchangés et retire les lignes qui ne sont plus dans les banques. Examinez le diff avant de committer. `--check` vérifie la synchronisation, les statuts et les champs obligatoires des lignes validées.
+`--write` ajoute les formulations nouvelles en statut `unverified`, conserve les métadonnées des identifiants inchangés et marque `archived` les formulations retirées du code source afin de préserver leur historique. Examinez le diff avant de committer. `--check` vérifie la synchronisation, les statuts et les champs obligatoires des lignes validées.
 
 ## Règle de communication
 
