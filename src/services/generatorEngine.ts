@@ -549,8 +549,9 @@ function generatePunchyMinimal(d: SubcategoryData, genLang: GenLanguageCode = 'a
     return cleanWord(p + s.toLowerCase());
   }
 
-  const shortP = d.prefixes.find((x) => x.length <= 4 && !x.includes(' ') && !x.includes("'")) || p.slice(0, 3);
-  const shortS = d.suffixes.find((x) => x.length <= 3 && !x.includes(' ') && !x.includes("'")) || s.slice(0, 2);
+  // Keep the selected language's roots in the fallback too; never mix in the source dataset.
+  const shortP = prefixes.find((x) => x.length <= 4 && !x.includes(' ') && !x.includes("'")) || p.slice(0, 3);
+  const shortS = suffixes.find((x) => x.length <= 3 && !x.includes(' ') && !x.includes("'")) || s.slice(0, 2);
   return cleanWord(cap(shortP + shortS.toLowerCase()));
 }
 
