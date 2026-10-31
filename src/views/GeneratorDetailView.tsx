@@ -5,6 +5,7 @@ import { NameCard } from '../components/NameCard';
 import { NoteModal } from '../components/NoteModal';
 import { GENERATORS_METADATA, ALL_GENERATORS_LIST } from '../data/generators';
 import { generateNames } from '../services/generatorEngine';
+import { rankGeneratedNames } from '../services/qualityApi';
 import { getTopRatedNamesByCategory, subscribeToStorage } from '../services/storage';
 import {
   FormatOption,
@@ -145,6 +146,7 @@ export const GeneratorDetailView: React.FC<GeneratorDetailViewProps> = ({
   const [results, setResults] = useState<GeneratedName[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const generationTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const generationRequestId = useRef(0);
   const [batchCopied, setBatchCopied] = useState(false);
 
   // Note Modal state
@@ -159,6 +161,7 @@ export const GeneratorDetailView: React.FC<GeneratorDetailViewProps> = ({
   const [copiedTopName, setCopiedTopName] = useState<string | null>(null);
 
   useEffect(() => () => {
+    generationRequestId.current += 1;
     if (generationTimeout.current) clearTimeout(generationTimeout.current);
   }, []);
 
@@ -252,6 +255,7 @@ export const GeneratorDetailView: React.FC<GeneratorDetailViewProps> = ({
 
   const handleGenerate = () => {
     if (generationTimeout.current) clearTimeout(generationTimeout.current);
+    const requestId = ++generationRequestId.current;
     setIsGenerating(true);
     // Debounce rapid control/keyword edits so typing does not trigger a full batch for every keystroke.
     generationTimeout.current = setTimeout(() => {
@@ -267,9 +271,22 @@ export const GeneratorDetailView: React.FC<GeneratorDetailViewProps> = ({
         quantity,
         keyword,
       });
-      setResults(generated);
-      setIsGenerating(false);
-      generationTimeout.current = null;
+
+      // Python ranking is optional. The TypeScript batch remains available immediately
+      // as a safe fallback if the remote service is not configured or cannot respond.
+      void rankGeneratedNames(generated, effectiveGenLanguage, selectedLength, keyword)
+        .then((ranked) => {
+          if (generationRequestId.current !== requestId) return;
+          setResults(ranked);
+          setIsGenerating(false);
+          generationTimeout.current = null;
+        })
+        .catch(() => {
+          if (generationRequestId.current !== requestId) return;
+          setResults(generated);
+          setIsGenerating(false);
+          generationTimeout.current = null;
+        });
     }, 280);
   };
 
@@ -278,6 +295,7 @@ export const GeneratorDetailView: React.FC<GeneratorDetailViewProps> = ({
     // Cancel pending work when controls change or this generator page unmounts.
     // This prevents stale batches from updating a page the user has already left.
     return () => {
+      generationRequestId.current += 1;
       if (generationTimeout.current) {
         clearTimeout(generationTimeout.current);
         generationTimeout.current = null;
