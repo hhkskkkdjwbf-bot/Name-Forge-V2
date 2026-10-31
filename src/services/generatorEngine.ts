@@ -685,8 +685,36 @@ function recordRecentNames(names: string[]): void {
    6. METADATA & PRONUNCIATION
 ===================================================================== */
 
-function generatePronunciation(name: string): string {
-  const clean = name.replace(/[^A-Za-zÀ-ÿ ]/g, '');
+const LANGUAGE_SCRIPT_PATTERNS: Record<string, RegExp> = {
+  en: /\\p{Script=Latin}/u, fr: /\\p{Script=Latin}/u, es: /\\p{Script=Latin}/u,
+  de: /\\p{Script=Latin}/u, it: /\\p{Script=Latin}/u, pt: /\\p{Script=Latin}/u,
+  tr: /\\p{Script=Latin}/u, nl: /\\p{Script=Latin}/u, pl: /\\p{Script=Latin}/u,
+  sv: /\\p{Script=Latin}/u, vi: /\\p{Script=Latin}/u, id: /\\p{Script=Latin}/u,
+  cs: /\\p{Script=Latin}/u, ro: /\\p{Script=Latin}/u, da: /\\p{Script=Latin}/u,
+  fi: /\\p{Script=Latin}/u, nb: /\\p{Script=Latin}/u, latin: /\\p{Script=Latin}/u,
+  nordic: /\\p{Script=Latin}/u, tech: /\\p{Script=Latin}/u,
+  ar: /\\p{Script=Arabic}/u, he: /\\p{Script=Hebrew}/u,
+  ja: /[\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}]/u,
+  ko: /[\\p{Script=Hangul}\\p{Script=Han}]/u, zh: /\\p{Script=Han}/u,
+  ru: /\\p{Script=Cyrillic}/u, uk: /\\p{Script=Cyrillic}/u,
+  hi: /\\p{Script=Devanagari}/u, bn: /\\p{Script=Bengali}/u,
+  th: /\\p{Script=Thai}/u, el: /\\p{Script=Greek}/u,
+};
+
+function isScriptCompatibleText(value: string, language: GenLanguageCode): boolean {
+  const expected = LANGUAGE_SCRIPT_PATTERNS[language];
+  if (!expected) return true;
+  const letters = Array.from(value).filter((char) => /\\p{L}/u.test(char));
+  if (!letters.length) return false;
+  const matching = letters.filter((char) => expected.test(char)).length;
+  return matching / letters.length >= 0.75;
+}
+
+/** A rough reading aid for Latin-script names only; no fake transliteration is shown. */
+function generatePronunciation(name: string, language: GenLanguageCode = 'auto'): string | undefined {
+  if (language !== 'auto' && !isScriptCompatibleText(name, language)) return undefined;
+  const clean = name.replace(/[^\\p{Script=Latin} ]/gu, '').trim();
+  if (!clean) return undefined;
   const parts = clean.split(' ');
   const phoneticParts = parts.map((part) => {
     if (part.length <= 3) return part.toUpperCase();
@@ -932,7 +960,7 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
         bestFor: resolved.bestFor || 'futurs enfants, fratries et faire-part',
         tone: resolved.tone || 'Harmonieux • intemporel • doux',
         generatorId: 'baby_name',
-        pronunciation: generatePronunciation(item.name),
+        pronunciation: generatePronunciation(item.name, genLanguage),
         strengths: [
           'Prénom authentique attesté à l’état civil',
           `Origine étymologique certifiée : ${item.origin}`,
@@ -961,7 +989,7 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
           bestFor: resolved.bestFor || 'futurs enfants, fratries et faire-part',
           tone: resolved.tone || 'Harmonieux • intemporel • doux',
           generatorId: 'baby_name',
-          pronunciation: generatePronunciation(item.name),
+          pronunciation: generatePronunciation(item.name, genLanguage),
           strengths: ['Prénom authentique attesté', `Origine : ${item.origin}`],
           watchouts: ['Prononcez avec le nom de famille'],
           origin: `Origine certifiée : ${item.origin}`,
@@ -994,7 +1022,9 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
     const matching = cleanKw
       ? phraseBank.filter((p) => p.normalize('NFC').toLocaleLowerCase().includes(kwLower))
       : phraseBank;
-    // A keyword that matches no curated phrase falls through to the procedural pipeline below.
+    // Do not fall through to the source-language procedural vocabulary when a localized
+    // phrase bank exists but the requested keyword has no matching phrase.
+    if (cleanKw && matching.length === 0) return [];
     if (matching.length > 0) {
       const fresh = matching.filter((p) => !recentNames.some((r) => r.toLowerCase() === p.toLowerCase()));
       const shuffle = (list: string[]): string[] => {
@@ -1051,8 +1081,16 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
   const explicitLanguageRules = genLanguage !== 'auto' ? LANGUAGE_PHONETICS[genLanguage] : undefined;
   // Sentence-like generators (slogans, titles) are meaningless when rebuilt from name roots.
   const isSentenceLikeGenerator = ['slogan', 'book', 'novel_series', 'song_title', 'album_title', 'blog_name', 'newsletter', 'podcast', 'tactical_operation', 'restaurant', 'coffee_shop', 'tavern', 'band_name', 'videogame', 'youtube', 'shop', 'guild', 'bakery', 'hotel_name'].includes(targetGenerator);
+  // If a sentence-like category has no phrase bank for the selected generation mode,
+  // return no suggestions rather than leaking French source phrases into another language.
+  if (isSentenceLikeGenerator && genLanguage !== 'auto' && getPhraseBank(targetGenerator, genLanguage).length === 0) return [];
   const usesLanguageRoots =
     !isSentenceLikeGenerator && Boolean(explicitLanguageRules && explicitLanguageRules.prefixes.length > 0);
+  const activePrefixes = explicitLanguageRules?.prefixes.length ? explicitLanguageRules.prefixes : resolved.prefixes;
+  const activeSuffixes = explicitLanguageRules?.suffixes.length ? explicitLanguageRules.suffixes : resolved.suffixes;
+  const activeTitleWords = genLanguage === 'auto'
+    ? resolved.titles
+    : (explicitLanguageRules?.titleWords || []).filter((word) => isScriptCompatibleText(word, genLanguage));
   const vocabulary = usesLanguageRoots
     ? [...explicitLanguageRules!.prefixes, ...explicitLanguageRules!.suffixes]
     : [...resolved.prefixes, ...resolved.suffixes];
@@ -1085,9 +1123,9 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
 
     if (cleanKw) {
       const mode = activeRandom();
-      const suf = randomItem(resolved.suffixes) || '';
-      const pref = randomItem(resolved.prefixes) || '';
-      const titleW = randomItem(resolved.titles) || '';
+      const suf = randomItem(activeSuffixes) || '';
+      const pref = randomItem(activePrefixes) || '';
+      const titleW = randomItem(activeTitleWords) || '';
       const kwCap = cleanKw.charAt(0).toUpperCase() + cleanKw.slice(1);
 
       if (mode < 0.35 && suf) {
@@ -1168,38 +1206,37 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
           ? ['Ordre', 'Clan', 'Guilde', 'Cercle', 'Légion', 'Maison']
           : ['Collectif', 'Studio', 'Club', 'Troupe', 'Cercle', 'Équipe'];
 
-      const g =
-        (randomItem(resolved.groupTypes || defaultGroups) as string) ||
-        defaultGroups[0];
+      const groupPool = localizedGroups
+        ? categoryFamily === 'business'
+          ? localizedGroups.business
+          : categoryFamily === 'innovation'
+          ? localizedGroups.innovation
+          : categoryFamily === 'fantasy'
+          ? localizedGroups.fantasy
+          : localizedGroups.other
+        : genLanguage === 'auto' && resolved.groupTypes?.length
+          ? resolved.groupTypes
+          : defaultGroups;
+      const g = (randomItem(groupPool) as string) || defaultGroups[0];
       formattedName = `${g} ${baseName}`;
     } else if (format === 'compound') {
       if (!baseName.includes(' ')) {
-        const secondary = generatePunchyMinimal(resolved);
+        const secondary = generatePunchyMinimal(resolved, genLanguage);
         formattedName = combineParts(baseName, secondary);
       }
     } else {
-      // Title format (only apply if the category explicitly provides titles or is high fantasy)
-      if (resolved.titles && resolved.titles.length > 0 && activeRandom() < 0.28) {
-        const title = (randomItem(resolved.titles) as string) || '';
-        if (title) {
-          formattedName = combineParts(baseName, title);
-        }
-      } else if (isFantasyOrLore && !baseName.includes(' ') && activeRandom() < 0.22) {
-        const langRules = LANGUAGE_PHONETICS[genLanguage] || LANGUAGE_PHONETICS.auto;
-        const titlesPool =
-          genLanguage !== 'auto' && langRules.titleWords.length > 0
-            ? langRules.titleWords
-            : (genLanguage === 'auto' ? ['le Brave', 'l’Ancien', 'le Juste', 'le Gardien'] : ['the Brave', 'the Ancient', 'the Silent', 'the Just', 'the Guardian']);
-        const title = (randomItem(titlesPool) as string) || 'le Brave';
-        formattedName = combineParts(baseName, title);
+      // Explicit generation languages may only use title words verified for their writing system.
+      if (activeTitleWords.length > 0 && activeRandom() < (isFantasyOrLore ? 0.22 : 0.28)) {
+        const title = (randomItem(activeTitleWords) as string) || '';
+        if (title) formattedName = combineParts(baseName, title);
       }
     }
 
-    // Latin-script gender suffix rules must not append Latin letters to CJK, Arabic,
-    // Cyrillic, Devanagari, Thai, Greek, or Hebrew names.
-    const usesNonLatinGenderRules = ['ja', 'ar', 'ko', 'zh', 'ru', 'hi', 'th', 'el', 'he'].includes(genLanguage);
-    // Gender adaptations
-    if (!usesNonLatinGenderRules && gender === 'female' && !formattedName.includes(' ')) {
+    // Gender suffixes and prefixes in the style dataset are not translations.
+    // Apply these legacy adaptations only in Auto mode; explicit languages need
+    // language-specific morphology before gender inflection can be safely enabled.
+    const canApplyLegacyGenderRules = genLanguage === 'auto';
+    if (canApplyLegacyGenderRules && gender === 'female' && !formattedName.includes(' ')) {
       if (resolved.femaleStarts && resolved.femaleStarts.length > 0 && activeRandom() < 0.4) {
         const fPrefix = randomItem(resolved.femaleStarts);
         if (fPrefix) {
@@ -1212,7 +1249,7 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
       } else if (!/[aeiouy]$/i.test(formattedName)) {
         formattedName = formattedName + 'a';
       }
-    } else if (!usesNonLatinGenderRules && gender === 'male' && !formattedName.includes(' ')) {
+    } else if (canApplyLegacyGenderRules && gender === 'male' && !formattedName.includes(' ')) {
       if (resolved.maleStarts && resolved.maleStarts.length > 0 && activeRandom() < 0.4) {
         const mPrefix = randomItem(resolved.maleStarts);
         if (mPrefix) {
@@ -1269,7 +1306,7 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
       bestFor: resolved.bestFor || 'projets créatifs et professionnels',
       tone: resolved.tone || 'Distinctif • mémorable • percutant',
       generatorId: targetGenerator,
-      pronunciation: generatePronunciation(cand.name),
+      pronunciation: generatePronunciation(cand.name, genLanguage),
       strengths: meta.strengths,
       watchouts: meta.watchouts,
       disclaimer: meta.disclaimer,
@@ -1299,7 +1336,7 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
         bestFor: resolved.bestFor || 'projets créatifs et professionnels',
         tone: resolved.tone || 'Distinctif • mémorable • percutant',
         generatorId: targetGenerator,
-        pronunciation: generatePronunciation(cand.name),
+        pronunciation: generatePronunciation(cand.name, genLanguage),
         strengths: meta.strengths,
         watchouts: meta.watchouts,
         disclaimer: meta.disclaimer,
@@ -1315,12 +1352,14 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
     const kwCap = cleanKw ? cleanKw.charAt(0).toUpperCase() + cleanKw.slice(1) : '';
     let syntheticName: string;
     if (kwCap) {
-      const suffixesPool = ['Tech', 'Core', 'Labs', 'Prime', 'Craft', 'Solutions', 'Studio', 'Nova', 'Pro'];
-      const altSuffix = randomItem(resolved.suffixes) || randomItem(suffixesPool) || 'One';
+      const suffixesPool = genLanguage === 'auto'
+        ? ['Tech', 'Core', 'Labs', 'Prime', 'Craft', 'Solutions', 'Studio', 'Nova', 'Pro']
+        : activeSuffixes;
+      const altSuffix = randomItem(activeSuffixes) || randomItem(suffixesPool) || 'One';
       syntheticName = `${kwCap} ${altSuffix}`;
     } else {
-      const p = randomItem(resolved.prefixes) || 'Nova';
-      const s = randomItem(resolved.suffixes) || 'is';
+      const p = randomItem(activePrefixes) || 'Nova';
+      const s = randomItem(activeSuffixes) || 'is';
       syntheticName = combineParts(p, s);
     }
 
@@ -1339,7 +1378,7 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
         bestFor: resolved.bestFor || 'projets créatifs et professionnels',
         tone: resolved.tone || 'Distinctif • mémorable • percutant',
         generatorId: targetGenerator,
-        pronunciation: generatePronunciation(syntheticName),
+        pronunciation: generatePronunciation(syntheticName, genLanguage),
         strengths: meta.strengths,
         watchouts: meta.watchouts,
         disclaimer: meta.disclaimer,
