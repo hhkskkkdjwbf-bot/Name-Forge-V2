@@ -20,20 +20,45 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Node dependencies
         run: npm install
-
-      - name: Build production site
+      - name: Install Python service dependencies
+        run: pip install -r python/requirements.txt
+      - name: Audit phrase banks with Python
+        run: npm run audit:python
+      - name: Test Python quality service
+        run: PYTHONPATH=python python -m unittest discover -s python/tests -v
+      - name: Run application regression tests
+        run: npm test
+      - name: Type-check application
+        run: npm run lint
+      - name: Build production website
         run: npm run build:gh-pages
-
+      - name: Install Chromium for browser QA and Lighthouse
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright visual QA
+        run: npm run test:visual
+      - name: Run Lighthouse audit
+        run: npm run audit:lighthouse
+      - name: Upload QA reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nameforge-quality-reports
+          path: |
+            artifacts/visual-qa/
+            artifacts/lighthouse/
+          if-no-files-found: ignore
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-
       - name: Upload compiled website
         uses: actions/upload-pages-artifact@v3
         with:
