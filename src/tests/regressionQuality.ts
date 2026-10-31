@@ -60,7 +60,7 @@ for (const id of ['fantasy', 'rpg', 'elf', 'vampire', 'warrior']) {
   }
 }
 
-// 4. Attested baby names: every meaning is translated into the 24 non-French languages
+// 4. Attested baby names: every meaning is translated into the 27 non-French languages
 const { getLocalizedNameMeaning, getLocalizedNameOrigin, TRANSLATION_ORDER } = await import('../i18n/attestedNameTranslations');
 const { ATTESTED_BABY_NAMES } = await import('../data/attestedBabyNames');
 for (const item of ATTESTED_BABY_NAMES) {
@@ -72,7 +72,7 @@ for (const item of ATTESTED_BABY_NAMES) {
   }
 }
 
-// 5. Curated phrase banks: slogans, book titles and song titles exist natively in all 25 languages
+// 5. Curated phrase banks: slogans, book titles and song titles exist natively in all 28 languages
 const { getPhraseBank, PHRASE_BANK_GENERATORS } = await import('../data/phraseBanks');
 const ALL_LANGS = ['en','fr','es','de','it','pt','ar','tr','ja','ko','zh','ru','hi','nl','pl','sv','vi','id','th','el','he','cs','ro','da','fi','uk','bn','nb'];
 for (const generatorId of PHRASE_BANK_GENERATORS) {
