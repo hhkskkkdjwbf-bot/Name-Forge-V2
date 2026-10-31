@@ -1089,7 +1089,7 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
   const activePrefixes = explicitLanguageRules?.prefixes.length ? explicitLanguageRules.prefixes : resolved.prefixes;
   const activeSuffixes = explicitLanguageRules?.suffixes.length ? explicitLanguageRules.suffixes : resolved.suffixes;
   const activeTitleWords = genLanguage === 'auto'
-    ? resolved.titles
+    ? (resolved.titles || [])
     : (explicitLanguageRules?.titleWords || []).filter((word) => isScriptCompatibleText(word, genLanguage));
   const vocabulary = usesLanguageRoots
     ? [...explicitLanguageRules!.prefixes, ...explicitLanguageRules!.suffixes]
