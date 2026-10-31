@@ -11,7 +11,9 @@
     "lint": "tsc --noEmit",
     "test": "npx tsx src/tests/comprehensiveSuite.ts && npx tsx src/tests/regressionQuality.ts && node scripts/siteMetadata.test.mjs",
     "test:visual": "node scripts/visual-qa.mjs",
-    "audit:i18n": "npx tsx scripts/localization-coverage-audit.ts"
+    "audit:i18n": "npx tsx scripts/localization-coverage-audit.ts",
+    "audit:python": "python python/scripts/audit_phrase_banks.py --check",
+    "audit:lighthouse": "node scripts/lighthouse-audit.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.475.0",
