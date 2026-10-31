@@ -69,10 +69,10 @@ MIT License. Free for personal, commercial, and creative projects.
 
 ## Localization & quality architecture (added)
 
-- `src/data/phraseBanks.ts` — curated, native phrase banks (19 generators × 25 languages) for sentence-like or venue-style generators (slogans, titles, restaurants, taverns, band names…). Used when a generation language is selected.
-- `src/i18n/attestedNameTranslations.ts` — meanings and origins of the attested baby names in 24 languages.
+- `src/data/phraseBanks.ts` — curated, native phrase banks (19 generators × 28 languages) for sentence-like or venue-style generators (slogans, titles, restaurants, taverns, band names…). Used when a generation language is selected.
+- `src/i18n/attestedNameTranslations.ts` — meanings and origins of the attested baby names in 27 non-French languages.
 - `src/data/syllableEnrichment.ts` — extra syllable families for the fantasy-style generators (merged into the base datasets at load time).
-- `scripts/generate-seo-pages.ts` — generates static landing pages for every generator in all 25 languages (`/seo/<lang>/generators/<id>/`, English keeps `/seo/generators/<id>/`), with hreflang alternates, canonical URLs and a sitemap with `lastmod`.
+- `scripts/generate-seo-pages.ts` — generates static landing pages for every generator in all 28 languages (`/seo/<lang>/generators/<id>/`, English keeps `/seo/generators/<id>/`), with hreflang alternates, canonical URLs and a sitemap with `lastmod`.
 - `src/tests/regressionQuality.ts` — scans every generator/style for grammar and assembly defects and checks translation coverage. Run with `npm test`.
 
 Engine rules worth knowing: vocabularies made of whole words are never chopped into syllables; roman numerals and all-caps tags (`USS`, `III`) are preserved; French article/preposition contractions (`de la l’…`) are merged automatically.
