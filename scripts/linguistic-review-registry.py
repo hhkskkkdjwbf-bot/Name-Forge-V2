@@ -22,7 +22,7 @@ FIELDS = [
     "reviewer_name_or_id", "reviewer_level", "variety_or_region",
     "reviewed_on", "decision_notes", "reviewer_attestation",
 ]
-STATUSES = {"unverified", "in_review", "needs_revision", "validated", "rejected"}
+STATUSES = {"unverified", "in_review", "needs_revision", "validated", "rejected", "archived"}
 
 
 def phrase_id(category: str, locale: str, phrase: str) -> str:
@@ -84,6 +84,7 @@ def read_existing() -> dict[str, dict[str, str]]:
 def build_rows(source_records: list[dict[str, str]]) -> list[dict[str, str]]:
     existing = read_existing()
     rows = []
+    source_ids = {record["phrase_id"] for record in source_records}
     for record in source_records:
         previous = existing.get(record["phrase_id"], {})
         row = {field: "" for field in FIELDS}
@@ -91,8 +92,13 @@ def build_rows(source_records: list[dict[str, str]]) -> list[dict[str, str]]:
         row["status"] = previous.get("status") or "unverified"
         for field in FIELDS[5:]:
             row[field] = previous.get(field, "")
-        # A changed source phrase receives a new ID and starts unverified.
         rows.append(row)
+    # Keep historical rows when source phrases are removed or changed.
+    for identifier, previous in existing.items():
+        if identifier not in source_ids:
+            archived = {field: previous.get(field, "") for field in FIELDS}
+            archived["status"] = "archived"
+            rows.append(archived)
     return rows
 
 
@@ -104,8 +110,9 @@ def validate(rows: list[dict[str, str]], source_records: list[dict[str, str]]) -
     orphaned = set(actual) - set(expected)
     if missing:
         errors.append(f"{len(missing)} source phrases are missing from the registry")
-    if orphaned:
-        errors.append(f"{len(orphaned)} registry rows no longer exist in source")
+    active_orphans = {identifier for identifier in orphaned if actual[identifier].get("status") != "archived"}
+    if active_orphans:
+        errors.append(f"{len(active_orphans)} removed source phrases must be marked archived")
     for row in rows:
         identifier = row.get("phrase_id", "")
         source_row = expected.get(identifier)
