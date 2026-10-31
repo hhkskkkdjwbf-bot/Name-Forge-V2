@@ -163,6 +163,63 @@ check('Browser detection handles uk and bn', detectBrowserLanguage(['uk-UA']) ==
 check('Stored legacy "no" setting is migrated to nb', (normalizeAppSettings({ language: 'no' }).language as string) === 'nb');
 check('Unsupported browser languages default to English', detectBrowserLanguage(['xx-YY']) === 'en');
 
+// 10. Language quality: prevent accidental source-language leakage into generated names.
+const arabicKeywordBatch = generateNames({
+  generatorId: 'brand', genLanguage: 'ar', keyword: 'نور', quantity: 5, seed: 'arabic-keyword-check',
+});
+check(
+  'Arabic keyword generation keeps the requested Arabic root',
+  arabicKeywordBatch.length === 5 && arabicKeywordBatch.every((item) => item.name.includes('نور')),
+  arabicKeywordBatch.map((item) => item.name).join(' | ')
+);
+check(
+  'Arabic names do not receive fabricated Latin pronunciation hints',
+  arabicKeywordBatch.every((item) => !item.pronunciation),
+  arabicKeywordBatch.map((item) => item.pronunciation || 'none').join(' | ')
+);
+
+const spanishGroupBatch = generateNames({
+  generatorId: 'business', genLanguage: 'es', format: 'group', quantity: 5, seed: 'spanish-group-check',
+});
+check(
+  'Spanish group format uses Spanish collective words',
+  spanishGroupBatch.length === 5 && spanishGroupBatch.every((item) =>
+    /^(Taller|Estudio|Casa|Colectivo|Agencia)\\b/u.test(item.name)
+  ),
+  spanishGroupBatch.map((item) => item.name).join(' | ')
+);
+
+const japaneseTitleBatch = generateNames({
+  generatorId: 'fantasy', genLanguage: 'ja', format: 'title', quantity: 5, seed: 'japanese-title-check',
+});
+check(
+  'Japanese title format does not append romanized English title fragments',
+  japaneseTitleBatch.length === 5 && japaneseTitleBatch.every((item) =>
+    !/\\p{Script=Latin}/u.test(item.name)
+  ),
+  japaneseTitleBatch.map((item) => item.name).join(' | ')
+);
+
+const unmatchedBookKeyword = generateNames({
+  generatorId: 'book', genLanguage: 'fr', keyword: 'zzqv-unmatched', quantity: 3, seed: 'empty-phrase-match',
+});
+check(
+  'Sentence-like generators do not fall back to unrelated source-language phrases',
+  unmatchedBookKeyword.length === 0,
+  unmatchedBookKeyword.map((item) => item.name).join(' | ')
+);
+
+const arabicCompoundBatch = generateNames({
+  generatorId: 'fantasy', genLanguage: 'ar', format: 'compound', quantity: 4, seed: 'arabic-compound-check',
+});
+check(
+  'Compound format keeps Arabic roots in the Arabic writing system',
+  arabicCompoundBatch.length === 4 && arabicCompoundBatch.every((item) =>
+    !/\\p{Script=Latin}/u.test(item.name)
+  ),
+  arabicCompoundBatch.map((item) => item.name).join(' | ')
+);
+
 console.log(`Quality regression: ${passed} checks passed, ${failures.length} failed (${generated} names scanned).`);
 if (failures.length) {
   console.log([...new Set(failures)].slice(0, 40).join('\n'));
