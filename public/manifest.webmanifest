@@ -1,0 +1,24 @@
+{
+  "name": "NameForge — Professional Name Generators",
+  "short_name": "NameForge",
+  "description": "234+ free name generators for brands, characters, fantasy worlds, gaming and creative projects, in 25 languages.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#060611",
+  "theme_color": "#060611",
+  "icons": [
+    {
+      "src": "./images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
