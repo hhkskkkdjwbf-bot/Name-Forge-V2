@@ -1,7 +1,7 @@
-"""Deterministic, dependency-light quality ranking for generated names.
+"""Deterministic linguistic-form checks for candidate names.
 
-This service does not invent names or claim native-language validation. It scores
-candidates already produced by the existing TypeScript engine.
+This module checks orthographic form and mechanical quality only. It cannot
+judge meaning, idiom, cultural suitability, trademark availability, or native fluency.
 """
 from __future__ import annotations
 
@@ -14,13 +14,20 @@ SUPPORTED_LANGUAGES = {
     "zh", "ru", "hi", "nl", "pl", "sv", "vi", "id", "th", "el",
     "he", "cs", "ro", "da", "fi", "uk", "bn", "nb",
 }
-LANGUAGE_SCRIPTS = {
-    "ar": ("ARABIC",), "he": ("HEBREW",), "ja": ("HIRAGANA", "KATAKANA", "CJK"),
-    "ko": ("HANGUL",), "zh": ("CJK",), "ru": ("CYRILLIC",),
-    "uk": ("CYRILLIC",), "hi": ("DEVANAGARI",), "bn": ("BENGALI",),
-    "th": ("THAI",), "el": ("GREEK",),
-}
 
+# Unicode character-name families. Latin languages share the LATIN script;
+# Japanese intentionally permits Han, Hiragana and Katakana characters.
+LANGUAGE_SCRIPTS = {
+    "en": ("LATIN",), "fr": ("LATIN",), "es": ("LATIN",), "de": ("LATIN",),
+    "it": ("LATIN",), "pt": ("LATIN",), "tr": ("LATIN",), "nl": ("LATIN",),
+    "pl": ("LATIN",), "sv": ("LATIN",), "vi": ("LATIN",), "id": ("LATIN",),
+    "cs": ("LATIN",), "ro": ("LATIN",), "da": ("LATIN",), "fi": ("LATIN",),
+    "nb": ("LATIN",), "ar": ("ARABIC",), "he": ("HEBREW",),
+    "ja": ("HIRAGANA", "KATAKANA", "CJK", "IDEOGRAPH"),
+    "ko": ("HANGUL", "CJK", "IDEOGRAPH"), "zh": ("CJK", "IDEOGRAPH"),
+    "ru": ("CYRILLIC",), "uk": ("CYRILLIC",), "hi": ("DEVANAGARI",),
+    "bn": ("BENGALI",), "th": ("THAI",), "el": ("GREEK",),
+}
 
 @dataclass(frozen=True)
 class RankedCandidate:
@@ -32,7 +39,24 @@ class RankedCandidate:
 
 def comparison_key(value: str) -> str:
     value = unicodedata.normalize("NFKC", value).casefold()
-    return re.sub(r"[^\w]+", " ", value, flags=re.UNICODE).strip()
+    return re.sub(r"[^\\w]+", " ", value, flags=re.UNICODE).strip()
+
+
+def _script_profile(name: str) -> tuple[int, int, int]:
+    letters = [char for char in name if char.isalpha()]
+    if not letters:
+        return 0, 0, 0
+    families: dict[str, int] = {}
+    for char in letters:
+        label = unicodedata.name(char, "UNKNOWN")
+        family = next(
+            (part for part in ("LATIN", "ARABIC", "HEBREW", "HIRAGANA", "KATAKANA",
+                               "HANGUL", "CYRILLIC", "DEVANAGARI", "BENGALI", "THAI",
+                               "GREEK", "CJK", "IDEOGRAPH") if part in label),
+            "OTHER",
+        )
+        families[family] = families.get(family, 0) + 1
+    return len(letters), max(families.values()), len(families)
 
 
 def _script_matches(name: str, language: str) -> bool | None:
@@ -42,12 +66,11 @@ def _script_matches(name: str, language: str) -> bool | None:
     letters = [char for char in name if char.isalpha()]
     if not letters:
         return False
-    matches = 0
-    for char in letters:
-        label = unicodedata.name(char, "")
-        if any(script in label for script in expected):
-            matches += 1
-    return matches / len(letters) >= 0.65
+    matches = sum(
+        any(part in unicodedata.name(char, "") for part in expected)
+        for char in letters
+    )
+    return matches / len(letters) >= 0.75
 
 
 def score_candidate(
@@ -76,12 +99,23 @@ def score_candidate(
         if len(letters) > 24:
             score -= min(0.18, (len(letters) - 24) * 0.008)
             reasons.append("very_long")
-        if len(set(letters)) == 1 and len(letters) > 2:
+        if len(set(char.casefold() for char in letters)) == 1 and len(letters) > 2:
             score -= 0.20
             reasons.append("repetitive")
-        if re.search(r"(.)\1{2,}", clean, flags=re.IGNORECASE):
+        if re.search(r"(.)\\1{2,}", clean, flags=re.IGNORECASE):
             score -= 0.12
             reasons.append("repeated_sequence")
+        if re.search(r"[!?.,;:]{2,}", clean):
+            score -= 0.08
+            reasons.append("excessive_punctuation")
+        if any(unicodedata.category(char) in {"Cc", "Cf"} for char in clean):
+            score -= 0.20
+            reasons.append("hidden_control_character")
+
+        profile = _script_profile(clean)
+        if profile[2] > 1 and language in LANGUAGE_SCRIPTS:
+            score -= 0.10
+            reasons.append("mixed_scripts")
 
         if preferred_length:
             distance = abs(len(letters) - preferred_length)
@@ -94,7 +128,7 @@ def score_candidate(
             score += 0.10
             reasons.append("script_match")
         elif script_match is False:
-            score -= 0.18
+            score -= 0.22
             reasons.append("script_mismatch")
 
         if keyword and comparison_key(keyword) in key:
