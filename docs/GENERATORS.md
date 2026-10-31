@@ -26,7 +26,7 @@
 
 Assembly rules live in `combineParts` (roman numerals, `USS`-style prefixes, hyphenated toponyms, French
 article/preposition merging, adjective agreement). Candidates are scored and de-duplicated; recent names are filtered
-through a 100-name sliding window stored locally.
+through a 120-name sliding window stored locally.
 
 ## Limits
 
