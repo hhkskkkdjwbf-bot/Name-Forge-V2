@@ -72,7 +72,13 @@ def read_existing() -> dict[str, dict[str, str]]:
     if not REGISTRY.exists():
         return {}
     with REGISTRY.open(encoding="utf-8-sig", newline="") as handle:
-        return {row["phrase_id"]: row for row in csv.DictReader(handle)}
+        records = {}
+        for row in csv.DictReader(handle):
+            identifier = row["phrase_id"]
+            if identifier in records:
+                raise ValueError(f"Duplicate registry phrase_id: {identifier}")
+            records[identifier] = row
+        return records
 
 
 def build_rows(source_records: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -101,6 +107,12 @@ def validate(rows: list[dict[str, str]], source_records: list[dict[str, str]]) -
     if orphaned:
         errors.append(f"{len(orphaned)} registry rows no longer exist in source")
     for row in rows:
+        identifier = row.get("phrase_id", "")
+        source_row = expected.get(identifier)
+        if source_row:
+            for field in ("locale", "category", "phrase"):
+                if row.get(field, "") != source_row[field]:
+                    errors.append(f"{identifier}: {field} differs from phrase-bank source")
         status = row.get("status", "")
         if status not in STATUSES:
             errors.append(f"{row.get('phrase_id')}: invalid status {status!r}")
