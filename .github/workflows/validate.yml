@@ -27,6 +27,8 @@ jobs:
         run: pip install -r python/requirements.txt
       - name: Audit phrase banks with Python
         run: npm run audit:python
+      - name: Validate linguistic review registry
+        run: npm run audit:review
       - name: Test Python quality service
         run: PYTHONPATH=python python -m unittest discover -s python/tests -v
       - name: Run application regression tests
