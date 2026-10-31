@@ -110,10 +110,15 @@ def score_candidate(
             score -= 0.20
             reasons.append("hidden_control_character")
 
-        profile = _script_profile(clean)
-        if profile[2] > 1 and language in LANGUAGE_SCRIPTS:
-            score -= 0.10
-            reasons.append("mixed_scripts")
+        expected_scripts = LANGUAGE_SCRIPTS.get(language)
+        if expected_scripts:
+            unexpected_letters = sum(
+                not any(script in unicodedata.name(char, "") for script in expected_scripts)
+                for char in letters
+            )
+            if 0.10 < unexpected_letters / len(letters) < 0.25:
+                score -= 0.10
+                reasons.append("mixed_scripts")
 
         if preferred_length:
             distance = abs(len(letters) - preferred_length)
