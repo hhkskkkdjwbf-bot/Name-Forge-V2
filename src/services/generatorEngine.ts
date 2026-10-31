@@ -686,25 +686,25 @@ function recordRecentNames(names: string[]): void {
 ===================================================================== */
 
 const LANGUAGE_SCRIPT_PATTERNS: Record<string, RegExp> = {
-  en: /\\p{Script=Latin}/u, fr: /\\p{Script=Latin}/u, es: /\\p{Script=Latin}/u,
-  de: /\\p{Script=Latin}/u, it: /\\p{Script=Latin}/u, pt: /\\p{Script=Latin}/u,
-  tr: /\\p{Script=Latin}/u, nl: /\\p{Script=Latin}/u, pl: /\\p{Script=Latin}/u,
-  sv: /\\p{Script=Latin}/u, vi: /\\p{Script=Latin}/u, id: /\\p{Script=Latin}/u,
-  cs: /\\p{Script=Latin}/u, ro: /\\p{Script=Latin}/u, da: /\\p{Script=Latin}/u,
-  fi: /\\p{Script=Latin}/u, nb: /\\p{Script=Latin}/u, latin: /\\p{Script=Latin}/u,
-  nordic: /\\p{Script=Latin}/u, tech: /\\p{Script=Latin}/u,
-  ar: /\\p{Script=Arabic}/u, he: /\\p{Script=Hebrew}/u,
-  ja: /[\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}]/u,
-  ko: /[\\p{Script=Hangul}\\p{Script=Han}]/u, zh: /\\p{Script=Han}/u,
-  ru: /\\p{Script=Cyrillic}/u, uk: /\\p{Script=Cyrillic}/u,
-  hi: /\\p{Script=Devanagari}/u, bn: /\\p{Script=Bengali}/u,
-  th: /\\p{Script=Thai}/u, el: /\\p{Script=Greek}/u,
+  en: /\p{Script=Latin}/u, fr: /\p{Script=Latin}/u, es: /\p{Script=Latin}/u,
+  de: /\p{Script=Latin}/u, it: /\p{Script=Latin}/u, pt: /\p{Script=Latin}/u,
+  tr: /\p{Script=Latin}/u, nl: /\p{Script=Latin}/u, pl: /\p{Script=Latin}/u,
+  sv: /\p{Script=Latin}/u, vi: /\p{Script=Latin}/u, id: /\p{Script=Latin}/u,
+  cs: /\p{Script=Latin}/u, ro: /\p{Script=Latin}/u, da: /\p{Script=Latin}/u,
+  fi: /\p{Script=Latin}/u, nb: /\p{Script=Latin}/u, latin: /\p{Script=Latin}/u,
+  nordic: /\p{Script=Latin}/u, tech: /\p{Script=Latin}/u,
+  ar: /\p{Script=Arabic}/u, he: /\p{Script=Hebrew}/u,
+  ja: /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u,
+  ko: /[\p{Script=Hangul}\p{Script=Han}]/u, zh: /\p{Script=Han}/u,
+  ru: /\p{Script=Cyrillic}/u, uk: /\p{Script=Cyrillic}/u,
+  hi: /\p{Script=Devanagari}/u, bn: /\p{Script=Bengali}/u,
+  th: /\p{Script=Thai}/u, el: /\p{Script=Greek}/u,
 };
 
 function isScriptCompatibleText(value: string, language: GenLanguageCode): boolean {
   const expected = LANGUAGE_SCRIPT_PATTERNS[language];
   if (!expected) return true;
-  const letters = Array.from(value).filter((char) => /\\p{L}/u.test(char));
+  const letters = Array.from(value).filter((char) => /\p{L}/u.test(char));
   if (!letters.length) return false;
   const matching = letters.filter((char) => expected.test(char)).length;
   return matching / letters.length >= 0.75;
@@ -713,7 +713,7 @@ function isScriptCompatibleText(value: string, language: GenLanguageCode): boole
 /** A rough reading aid for Latin-script names only; no fake transliteration is shown. */
 function generatePronunciation(name: string, language: GenLanguageCode = 'auto'): string | undefined {
   if (language !== 'auto' && !isScriptCompatibleText(name, language)) return undefined;
-  const clean = name.replace(/[^\\p{Script=Latin} ]/gu, '').trim();
+  const clean = name.replace(/[^\p{Script=Latin} ]/gu, '').trim();
   if (!clean) return undefined;
   const parts = clean.split(' ');
   const phoneticParts = parts.map((part) => {
