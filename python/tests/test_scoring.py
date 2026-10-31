@@ -16,6 +16,27 @@ class ScoringTests(unittest.TestCase):
         arabic = score_candidate("نور القمر", language="ar")
         latin = score_candidate("Noor Al Qamar", language="ar")
         self.assertGreater(arabic.score, latin.score)
+        self.assertIn("script_match", arabic.reasons)
+        self.assertIn("script_mismatch", latin.reasons)
+
+    def test_latin_diacritics_are_valid_for_french(self):
+        candidate = score_candidate("Étoile d'été", language="fr")
+        self.assertIn("script_match", candidate.reasons)
+        self.assertNotIn("script_mismatch", candidate.reasons)
+
+    def test_japanese_mixed_writing_systems_are_not_penalized(self):
+        candidate = score_candidate("星の物語", language="ja")
+        self.assertIn("script_match", candidate.reasons)
+        self.assertNotIn("mixed_scripts", candidate.reasons)
+
+    def test_mixed_foreign_script_is_flagged(self):
+        candidate = score_candidate("NovaЖ", language="en")
+        self.assertIn("mixed_scripts", candidate.reasons)
+
+    def test_repeated_sequence_and_punctuation_are_flagged(self):
+        candidate = score_candidate("Soooo!!!", language="en")
+        self.assertIn("repeated_sequence", candidate.reasons)
+        self.assertIn("excessive_punctuation", candidate.reasons)
 
     def test_28_supported_language_codes(self):
         self.assertEqual(len(SUPPORTED_LANGUAGES), 28)
