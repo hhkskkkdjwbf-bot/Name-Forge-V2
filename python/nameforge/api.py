@@ -3,11 +3,25 @@ from __future__ import annotations
 import os
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
 from .scoring import SUPPORTED_LANGUAGES, rank_candidates
 
 app = FastAPI(title="NameForge Quality API", version="0.1.0")
+
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("NAMEFORGE_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 
 class RankRequest(BaseModel):
