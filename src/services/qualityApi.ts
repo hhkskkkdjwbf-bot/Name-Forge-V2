@@ -10,6 +10,12 @@ interface PythonRankResponse {
   results?: PythonRankedName[];
 }
 
+const API_LANGUAGES = new Set([
+  'en', 'fr', 'es', 'de', 'it', 'pt', 'ar', 'tr', 'ja', 'ko',
+  'zh', 'ru', 'hi', 'nl', 'pl', 'sv', 'vi', 'id', 'th', 'el',
+  'he', 'cs', 'ro', 'da', 'fi', 'uk', 'bn', 'nb',
+]);
+
 function comparisonKey(value: string): string {
   return value
     .normalize('NFKC')
@@ -33,7 +39,7 @@ export async function rankGeneratedNames(
     env?: { VITE_NAMEFORGE_API_URL?: string };
   }).env?.VITE_NAMEFORGE_API_URL?.trim();
 
-  if (!apiUrl || candidates.length < 2) return candidates;
+  if (!apiUrl || candidates.length < 2 || !API_LANGUAGES.has(language)) return candidates;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 1800);
