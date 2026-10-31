@@ -12,7 +12,7 @@ import { resolveStyleData } from '../data/styles';
 import { addGenerationHistory } from './storage';
 import { GENERATORS_METADATA } from '../data/generators';
 import { ATTESTED_BABY_NAMES } from '../data/attestedBabyNames';
-import { getPhraseBank } from '../data/phraseBanks';
+import { getPhraseBank, PHRASE_BANK_GENERATORS } from '../data/phraseBanks';
 
 const RECENT_NAMES_KEY = 'nameforge_recent_names';
 const RECENT_LIMIT = 120;
@@ -1081,7 +1081,7 @@ function generateNamesInternal(options: GenerateOptions): GeneratedName[] {
   // generator's (French) phrase vocabulary must not decide how names are assembled.
   const explicitLanguageRules = genLanguage !== 'auto' ? LANGUAGE_PHONETICS[genLanguage] : undefined;
   // Sentence-like generators (slogans, titles) are meaningless when rebuilt from name roots.
-  const isSentenceLikeGenerator = ['slogan', 'book', 'novel_series', 'song_title', 'album_title', 'blog_name', 'newsletter', 'podcast', 'tactical_operation', 'restaurant', 'coffee_shop', 'tavern', 'band_name', 'videogame', 'youtube', 'shop', 'guild', 'bakery', 'hotel_name'].includes(targetGenerator);
+  const isSentenceLikeGenerator = PHRASE_BANK_GENERATORS.includes(targetGenerator);
   // If a sentence-like category has no phrase bank for the selected generation mode,
   // return no suggestions rather than leaking French source phrases into another language.
   if (isSentenceLikeGenerator && genLanguage !== 'auto' && getPhraseBank(targetGenerator, genLanguage).length === 0) return [];
