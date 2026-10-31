@@ -15,8 +15,6 @@ SUPPORTED_LANGUAGES = {
     "he", "cs", "ro", "da", "fi", "uk", "bn", "nb",
 }
 
-# Unicode character-name families. Latin languages share the LATIN script;
-# Japanese intentionally permits Han, Hiragana and Katakana characters.
 LANGUAGE_SCRIPTS = {
     "en": ("LATIN",), "fr": ("LATIN",), "es": ("LATIN",), "de": ("LATIN",),
     "it": ("LATIN",), "pt": ("LATIN",), "tr": ("LATIN",), "nl": ("LATIN",),
@@ -39,7 +37,7 @@ class RankedCandidate:
 
 def comparison_key(value: str) -> str:
     value = unicodedata.normalize("NFKC", value).casefold()
-    return re.sub(r"[^\\w]+", " ", value, flags=re.UNICODE).strip()
+    return re.sub(r"[^\w]+", " ", value, flags=re.UNICODE).strip()
 
 
 def _script_profile(name: str) -> tuple[int, int, int]:
@@ -102,7 +100,7 @@ def score_candidate(
         if len(set(char.casefold() for char in letters)) == 1 and len(letters) > 2:
             score -= 0.20
             reasons.append("repetitive")
-        if re.search(r"(.)\\1{2,}", clean, flags=re.IGNORECASE):
+        if re.search(r"(.)\1{2,}", clean, flags=re.IGNORECASE):
             score -= 0.12
             reasons.append("repeated_sequence")
         if re.search(r"[!?.,;:]{2,}", clean):
